@@ -53,7 +53,7 @@ test('local interface works without cross-origin permission and exposes no priva
   assert.equal(page.status, 200);
   assert.match(await page.text(), /VLT/);
   assert.equal((await fetch(localOrigin + '/worker.ps1')).status, 403);
-  for (const route of ['/docs', '/docs/', '/docs.html']) {
+  for (const route of ['/docs', '/docs/', '/docs.html', '/docs?lang=fr']) {
     const docs = await fetch(localOrigin + route);
     assert.equal(docs.status, 200);
     const html = await docs.text();
@@ -61,4 +61,16 @@ test('local interface works without cross-origin permission and exposes no priva
     assert.match(html, /Documentation sections/);
     assert.doesNotMatch(html, /src="\/app.js"/);
   }
+});
+
+test('language survives pairing and static pages without allowing arbitrary redirects', async t => {
+  const { url } = await fixture(t);
+  const base = new URL(url).origin;
+  assert.equal((await fetch(base+'/?lang=fr')).status, 200);
+  for (const asset of ['i18n.js', 'translations.js']) assert.equal((await fetch(base+'/'+asset)).status, 200);
+  const paired = await fetch(base+'/launch?web=1&lang=fr&redirect=https://attacker.example', {redirect:'manual'});
+  assert.equal(paired.status, 302);
+  assert.equal(paired.headers.get('location'), SITE+'/?lang=fr#pair='+'a'.repeat(64));
+  const local = await fetch(base+'/launch?lang=en', {redirect:'manual'});
+  assert.equal(local.headers.get('location'), '/?lang=en#pair='+'a'.repeat(64));
 });

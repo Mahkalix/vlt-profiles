@@ -33,14 +33,17 @@ export function createBridge({ token = randomBytes(32).toString('hex'), origin =
     // Exact origin and loopback Host checks defend against CSRF and DNS rebinding.
     if (!/^127\.0\.0\.1:\d+$/.test(req.headers.host || '')) return send(403, { error: 'Host rejected.' });
     const localOrigin = 'http://' + req.headers.host;
-    if (req.method === 'GET' && ['/launch','/launch?web=1'].includes(req.url)) {
-      const destination = req.url === '/launch?web=1' ? origin+'/' : '/';
-      res.writeHead(302, { Location: destination+'#pair='+token, 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' }); return res.end();
+    const requestUrl = new URL(req.url, localOrigin);
+    if (req.method === 'GET' && requestUrl.pathname === '/launch') {
+      const destination = requestUrl.searchParams.get('web') === '1' ? origin+'/' : '/';
+      const lang = requestUrl.searchParams.get('lang');
+      const query = ['fr', 'en'].includes(lang) ? '?lang='+lang : '';
+      res.writeHead(302, { Location: destination+query+'#pair='+token, 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' }); return res.end();
     }
-    const assets = { '/docs': ['docs.html','text/html'], '/docs/': ['docs.html','text/html'], '/docs.html': ['docs.html','text/html'], '/': ['index.html','text/html'], '/app.js': ['app.js','text/javascript'], '/style.css': ['style.css','text/css'], '/icon.svg': ['icon.svg','image/svg+xml'] };
-    if (req.method === 'GET' && Object.hasOwn(assets, req.url)) {
+    const assets = { '/i18n.js': ['i18n.js','text/javascript'], '/translations.js': ['translations.js','text/javascript'], '/docs': ['docs.html','text/html'], '/docs/': ['docs.html','text/html'], '/docs.html': ['docs.html','text/html'], '/': ['index.html','text/html'], '/app.js': ['app.js','text/javascript'], '/style.css': ['style.css','text/css'], '/icon.svg': ['icon.svg','image/svg+xml'] };
+    if (req.method === 'GET' && Object.hasOwn(assets, requestUrl.pathname)) {
       try {
-        const [file, type] = assets[req.url];
+        const [file, type] = assets[requestUrl.pathname];
         const body = await readFile(path.join(dir, 'web', file));
         res.writeHead(200, { 'Content-Type': type+'; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }); return res.end(body);
       } catch { return send(404, { error: 'Local interface missing. Download the latest connector.' }); }
