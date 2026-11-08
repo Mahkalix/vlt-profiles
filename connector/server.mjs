@@ -33,6 +33,9 @@ export function createBridge({ token = randomBytes(32).toString('hex'), origin =
     // Exact origin and loopback Host checks defend against CSRF and DNS rebinding.
     if (!/^127\.0\.0\.1:\d+$/.test(req.headers.host || '')) return send(403, { error: 'Hote refuse.' });
     const localOrigin = 'http://' + req.headers.host;
+    if (req.method === 'GET' && req.url === '/launch') {
+      res.writeHead(302, { Location: '/#pair='+token, 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' }); return res.end();
+    }
     const assets = { '/': ['index.html','text/html'], '/app.js': ['app.js','text/javascript'], '/style.css': ['style.css','text/css'], '/icon.svg': ['icon.svg','image/svg+xml'] };
     if (req.method === 'GET' && Object.hasOwn(assets, req.url)) {
       try {
@@ -71,7 +74,12 @@ export function createBridge({ token = randomBytes(32).toString('hex'), origin =
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const bridge = createBridge();
-  bridge.server.on('error', () => { console.error('Connecteur deja ouvert ou port 43187 indisponible. Ferme son ancienne fenetre puis relance.'); process.exitCode = 1; });
+  bridge.server.on('error', error => {
+    if (error.code === 'EADDRINUSE') {
+      console.log('Ouverture du connecteur deja actif.');
+      spawn('explorer.exe', ['http://127.0.0.1:43187/launch'], { windowsHide: true, stdio: 'ignore' }).on('error', () => console.error('Ouvre http://127.0.0.1:43187/launch dans ton navigateur.'));
+    } else { console.error('Impossible de demarrer le connecteur sur le port 43187.'); process.exitCode = 1; }
+  });
   bridge.server.listen(43187, '127.0.0.1', () => {
     const url = `http://127.0.0.1:43187/#pair=${bridge.token}`;
     console.log('VLT PROFILES | Connecteur actif. Garde cette fenetre ouverte.');

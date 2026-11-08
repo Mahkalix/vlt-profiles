@@ -126,4 +126,5 @@ $('show-backups').addEventListener('click', () => run(async () => {
   notice('Sauvegardes du compte connecté affichées.');
 }));
 for (const id of ['refresh', 'refresh-account']) $(id).addEventListener('click', () => run(refresh));
-if (token) notice('Onglet associé au connecteur. Cliquez sur « Connecter mon compte » et autorisez l’accès au réseau local si demandé.');
+if (token && location.hostname === '127.0.0.1') run(refresh);
+else if (token) notice('Onglet associé au connecteur. Cliquez sur « Connecter mon compte » et autorisez l’accès au réseau local si demandé.');
