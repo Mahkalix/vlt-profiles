@@ -33,8 +33,9 @@ export function createBridge({ token = randomBytes(32).toString('hex'), origin =
     // Exact origin and loopback Host checks defend against CSRF and DNS rebinding.
     if (!/^127\.0\.0\.1:\d+$/.test(req.headers.host || '')) return send(403, { error: 'Hote refuse.' });
     const localOrigin = 'http://' + req.headers.host;
-    if (req.method === 'GET' && req.url === '/launch') {
-      res.writeHead(302, { Location: '/#pair='+token, 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' }); return res.end();
+    if (req.method === 'GET' && ['/launch','/launch?web=1'].includes(req.url)) {
+      const destination = req.url === '/launch?web=1' ? origin+'/' : '/';
+      res.writeHead(302, { Location: destination+'#pair='+token, 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' }); return res.end();
     }
     const assets = { '/': ['index.html','text/html'], '/app.js': ['app.js','text/javascript'], '/style.css': ['style.css','text/css'], '/icon.svg': ['icon.svg','image/svg+xml'] };
     if (req.method === 'GET' && Object.hasOwn(assets, req.url)) {

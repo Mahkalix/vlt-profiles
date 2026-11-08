@@ -21,6 +21,11 @@ async function api(action, extra = {}) {
     response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ action, ...extra }), signal: AbortSignal.timeout(['apply','restore','save'].includes(action) ? 125_000 : 12_000), cache: 'no-store' });
   } catch { throw new Error('Connecteur inaccessible. Lancez Demarrer.cmd et autorisez l’accès au réseau local si le navigateur le demande.'); }
   const data = await response.json();
+  if (response.status === 401) {
+    token = null; sessionStorage.removeItem('vlt-pair');
+    state.account = null;
+    throw new Error('Association expirée après le redémarrage du connecteur. Cliquez sur « Connecter mon compte » pour la renouveler.');
+  }
   if (!response.ok) throw new Error(data.error || 'Le connecteur a refusé cette opération.');
   return data.result;
 }
@@ -125,6 +130,12 @@ $('show-backups').addEventListener('click', () => run(async () => {
   modal('VOS POINTS DE RETOUR.', content, '', null);
   notice('Sauvegardes du compte connecté affichées.');
 }));
-for (const id of ['refresh', 'refresh-account']) $(id).addEventListener('click', () => run(refresh));
+for (const id of ['refresh', 'refresh-account']) $(id).addEventListener('click', () => {
+  if (!token) {
+    location.assign('http://127.0.0.1:43187/launch'+(location.hostname === '127.0.0.1' ? '' : '?web=1'));
+    return;
+  }
+  run(refresh);
+});
 if (token && location.hostname === '127.0.0.1') run(refresh);
 else if (token) notice('Onglet associé au connecteur. Cliquez sur « Connecter mon compte » et autorisez l’accès au réseau local si demandé.');
