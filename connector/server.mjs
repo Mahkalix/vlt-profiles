@@ -40,7 +40,7 @@ export function createBridge({ token = randomBytes(32).toString('hex'), origin =
       const query = ['fr', 'en'].includes(lang) ? '?lang='+lang : '';
       res.writeHead(302, { Location: destination+query+'#pair='+token, 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' }); return res.end();
     }
-    const assets = { '/i18n.js': ['i18n.js','text/javascript'], '/translations.js': ['translations.js','text/javascript'], '/docs': ['docs.html','text/html'], '/docs/': ['docs.html','text/html'], '/docs.html': ['docs.html','text/html'], '/': ['index.html','text/html'], '/app.js': ['app.js','text/javascript'], '/style.css': ['style.css','text/css'], '/icon.svg': ['icon.svg','image/svg+xml'] };
+    const assets = { '/assets/riot/ascent.png': ['assets/riot/ascent.png','image/png'], '/assets/riot/jett.png': ['assets/riot/jett.png','image/png'], '/assets/riot/killjoy.png': ['assets/riot/killjoy.png','image/png'], '/assets/riot/omen.png': ['assets/riot/omen.png','image/png'], '/assets/riot/sage.png': ['assets/riot/sage.png','image/png'],  '/i18n.js': ['i18n.js','text/javascript'], '/translations.js': ['translations.js','text/javascript'], '/docs': ['docs.html','text/html'], '/docs/': ['docs.html','text/html'], '/docs.html': ['docs.html','text/html'], '/': ['index.html','text/html'], '/app.js': ['app.js','text/javascript'], '/style.css': ['style.css','text/css'], '/icon.svg': ['icon.svg','image/svg+xml'] };
     if (req.method === 'GET' && Object.hasOwn(assets, requestUrl.pathname)) {
       try {
         const [file, type] = assets[requestUrl.pathname];

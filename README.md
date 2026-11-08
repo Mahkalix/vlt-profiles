@@ -48,3 +48,7 @@ Le ZIP `public/downloads/vlt-connector.zip` doit être régénéré après une m
 L'approche de transfert par le service de préférences Riot a été vérifiée dans le code public de [ValoUtils](https://github.com/windowsedd/ValoUtils/blob/master/src-tauri/src/riot/settings.rs). Ce projet utilise une interface et un connecteur distincts.
 
 La direction graphique s'inspire du [site officiel VALORANT](https://playvalorant.com/fr-fr/). Le bandeau utilise une vidéo diffusée par le CDN officiel de Riot. Les éléments VALORANT appartiennent à leurs ayants droit.
+
+## Artwork attribution
+
+Artwork in `public/assets/riot` comes from Riot Games' official VALORANT Public Content Catalog (release 08.09). See `provenance.json` for the original archive entries and source links. Copyright remains with Riot Games, Inc.; these assets are not public domain or CC0. Riot usage policies apply. The VLT Profiles logo remains original. The catalog does not constitute approval of this application's private API integration.
