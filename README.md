@@ -52,3 +52,11 @@ La direction graphique s'inspire du [site officiel VALORANT](https://playvaloran
 ## Artwork attribution
 
 Artwork in `public/assets/riot` comes from Riot Games' official VALORANT Public Content Catalog (release 08.09). See `provenance.json` for the original archive entries and source links. Copyright remains with Riot Games, Inc.; these assets are not public domain or CC0. Riot usage policies apply. The VLT Profiles logo remains original. The catalog does not constitute approval of this application's private API integration.
+
+## PWA and security boundaries
+
+The manifest provides standalone installation and original 192/512 px icons. A content-versioned service worker precaches only an explicit list of public interface files, Docs, images and self-hosted fonts. `/api`, `/launch`, authenticated requests, downloads and external origins are never intercepted or queued. Updates require a user action and the update button is disabled during profile operations. Transfers still require the Windows connector and internet access.
+
+The deployment and local server use a restrictive CSP (no inline scripts or third-party scripts), deny framing, suppress referrers and disable unused browser permissions. The connector binds only to 127.0.0.1, verifies its exact Host/port and permitted origins, uses a random per-process pairing token with constant-time comparison, validates requests and exposes an explicit static-file allowlist. Pairing is restricted to top-level browser navigation; profile data is not published or cached by the PWA. Google Fonts are self-hosted with their OFL licenses.
+
+Limits: profiles and backups are local JSON files, not encrypted at rest. Another process or person with access to the same Windows account can read them. A compromised PC, browser extension, GitHub/Vercel account or supply chain is outside these application-level controls. This is not an independent penetration test or a guarantee of zero vulnerabilities. The private Riot API remains unofficial.

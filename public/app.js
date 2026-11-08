@@ -1,3 +1,4 @@
+import { setPwaBusy } from './pwa.js';
 import { t, language, translateError } from './i18n.js';
 const $ = id => document.getElementById(id);
 const state = { account: null, profiles: [], backups: [], busy: false, online: false, gameRunning: false };
@@ -9,6 +10,7 @@ if (/^[a-f0-9]{64}$/.test(hash.get('pair') || '')) {
 let token = sessionStorage.getItem('vlt-pair');
 function notice(message, kind = '') { $('notice').textContent = message; $('notice').className = `notice ${kind}`; }
 function setButtons() {
+  setPwaBusy(state.busy);
   document.querySelectorAll('[data-language]').forEach(button => button.disabled = state.busy);
   $('new-profile').disabled = state.busy || !state.account;
   $('show-backups').disabled = state.busy || !state.online;

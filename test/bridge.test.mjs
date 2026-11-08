@@ -74,3 +74,14 @@ test('language survives pairing and static pages without allowing arbitrary redi
   const local = await fetch(base+'/launch?lang=en', {redirect:'manual'});
   assert.equal(local.headers.get('location'), '/?lang=en#pair='+'a'.repeat(64));
 });
+
+test('bridge blocks hostile pairing, malformed API input and script framing', async t => {
+ let calls=0;const {request,url}=await fixture(t,async()=>{calls++;return {};});const base=new URL(url).origin;
+ for(const headers of [{Origin:'https://attacker.example'},{'Sec-Fetch-Dest':'iframe'}]) assert.equal((await fetch(base+'/launch',{headers,redirect:'manual'})).status,403);
+ for(const body of [null,[],{action:'delete',id:['valid']},{action:'list',unexpected:true},{action:'save',name:'a',account:'-'.repeat(36)}])assert.equal((await request(body)).status,400);
+ assert.equal((await request({action:'save',name:'x'.repeat(9000),account:'00000000-0000-0000-0000-000000000001'})).status,413);
+ assert.equal(calls,0);
+ const page=await fetch(base+'/');assert.match(page.headers.get('content-security-policy'),/frame-ancestors 'none'/);assert.match(page.headers.get('content-security-policy'),/script-src 'self'/);assert.equal(page.headers.get('referrer-policy'),'no-referrer');assert.equal(page.headers.get('x-content-type-options'),'nosniff');
+ for(const route of ['/sw.js','/manifest.webmanifest','/assets/icons/icon-192.png'])assert.equal((await fetch(base+route)).status,200);
+ for(const route of ['/worker.ps1','/security.mjs','/Profils-Cloud/test.json','/.env','/comptes.json'])assert.equal((await fetch(base+route)).status,403);
+});

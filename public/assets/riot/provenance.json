@@ -6,9 +6,8 @@
   "catalogVersion": "08.09.00.2521387",
   "files": {
     "ascent": "Maps/7EAECC1B-4337-BBF6-6AB9-04B8F06B3319_splash.png",
-    "jett": "Characters/ADD6443A-41BD-E414-F6AD-E58D267F4E95_full.png",
-    "killjoy": "Characters/1E58DE9C-4950-5125-93E9-A0AEE9F98746_full.png",
-    "omen": "Characters/8E253930-4C05-31DD-1B6C-968525494517_full.png",
-    "sage": "Characters/569FDD95-4D10-43AB-CA70-79BECC718B46_full.png"
+    "lotus": "Maps/2FE4ED3A-450A-948B-6D6B-E89A78E680A9_splash.png",
+    "haven": "Maps/2BEE0DC9-4FFE-519B-1CBD-7FBE763A6047_splash.png",
+    "sunset": "Maps/92584FBE-486A-B1B2-9FAA-39B0F486B498_splash.png"
   }
 }

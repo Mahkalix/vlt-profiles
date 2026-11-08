@@ -1,3 +1,5 @@
+import { SECURITY_HEADERS } from './security.mjs';
+import { STATIC_ASSETS } from './static-assets.mjs';
 import http from 'node:http';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { spawn } from 'node:child_process';
@@ -28,19 +30,21 @@ export function worker(request) {
 }
 export function createBridge({ token = randomBytes(32).toString('hex'), origin = SITE, run = worker } = {}) {
   let busy = false;
-  const server = http.createServer(async (req, res) => {
+  const server = http.createServer({ requestTimeout: 15000, headersTimeout: 10000, maxHeaderSize: 8192 }, async (req, res) => {
+    for (const [key, value] of Object.entries(SECURITY_HEADERS)) res.setHeader(key, value);
     const send = (code, data) => { res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }); res.end(JSON.stringify(data)); };
     // Exact origin and loopback Host checks defend against CSRF and DNS rebinding.
-    if (!/^127\.0\.0\.1:\d+$/.test(req.headers.host || '')) return send(403, { error: 'Host rejected.' });
+    if (req.headers.host !== '127.0.0.1:'+req.socket.localPort) return send(403, { error: 'Host rejected.' });
     const localOrigin = 'http://' + req.headers.host;
     const requestUrl = new URL(req.url, localOrigin);
     if (req.method === 'GET' && requestUrl.pathname === '/launch') {
+      if ((req.headers.origin && ![origin, localOrigin].includes(req.headers.origin)) || (req.headers['sec-fetch-dest'] && req.headers['sec-fetch-dest'] !== 'document')) return send(403, { error: 'Origin rejected.' });
       const destination = requestUrl.searchParams.get('web') === '1' ? origin+'/' : '/';
       const lang = requestUrl.searchParams.get('lang');
       const query = ['fr', 'en'].includes(lang) ? '?lang='+lang : '';
       res.writeHead(302, { Location: destination+query+'#pair='+token, 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' }); return res.end();
     }
-    const assets = { '/assets/riot/ascent.png': ['assets/riot/ascent.png','image/png'], '/assets/riot/jett.png': ['assets/riot/jett.png','image/png'], '/assets/riot/killjoy.png': ['assets/riot/killjoy.png','image/png'], '/assets/riot/omen.png': ['assets/riot/omen.png','image/png'], '/assets/riot/sage.png': ['assets/riot/sage.png','image/png'],  '/i18n.js': ['i18n.js','text/javascript'], '/translations.js': ['translations.js','text/javascript'], '/docs': ['docs.html','text/html'], '/docs/': ['docs.html','text/html'], '/docs.html': ['docs.html','text/html'], '/': ['index.html','text/html'], '/app.js': ['app.js','text/javascript'], '/style.css': ['style.css','text/css'], '/icon.svg': ['icon.svg','image/svg+xml'] };
+    const assets = STATIC_ASSETS;
     if (req.method === 'GET' && Object.hasOwn(assets, requestUrl.pathname)) {
       try {
         const [file, type] = assets[requestUrl.pathname];
@@ -63,12 +67,14 @@ export function createBridge({ token = randomBytes(32).toString('hex'), origin =
     busy = true;
     try {
       let body = '';
-      for await (const part of req) { body += part; if (body.length > 8192) { send(413, { error: 'Request too large.' }); return; } }
+      for await (const part of req) { body += part; if (Buffer.byteLength(body) > 8192) { send(413, { error: 'Request too large.' }); return; } }
       let request;
       try { request = JSON.parse(body); } catch { return send(400, { error: 'Invalid request.' }); }
+      if (!request || typeof request !== 'object' || Array.isArray(request)) return send(400, { error: 'Invalid request.' });
+      if (Object.keys(request).some(key => !['action','id','account','name'].includes(key))) return send(400, { error: 'Invalid request.' });
       if (!['status', 'list', 'save', 'apply', 'restore', 'delete'].includes(request.action)) return send(400, { error: 'Unknown action.' });
-      if (['save', 'apply', 'restore'].includes(request.action) && !/^[a-f0-9-]{36}$/i.test(request.account || '')) return send(400, { error: 'Invalid account.' });
-      if (['apply', 'restore', 'delete'].includes(request.action) && !/^[A-Za-z0-9-]{1,100}$/.test(request.id || '')) return send(400, { error: 'Invalid profile.' });
+      if (['save', 'apply', 'restore'].includes(request.action) && (typeof request.account !== 'string' || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(request.account))) return send(400, { error: 'Invalid account.' });
+      if (['apply', 'restore', 'delete'].includes(request.action) && (typeof request.id !== 'string' || !/^[A-Za-z0-9-]{1,100}$/.test(request.id))) return send(400, { error: 'Invalid profile.' });
       if (request.action === 'save' && (typeof request.name !== 'string' || !request.name.trim() || request.name.length > 60)) return send(400, { error: 'Invalid profile name.' });
       send(200, { ok: true, result: await run(request) });
     } catch (error) { send(400, { error: error.message }); }
