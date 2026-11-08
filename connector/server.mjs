@@ -63,9 +63,9 @@ export function createBridge({ token = randomBytes(32).toString('hex'), origin =
       for await (const part of req) { body += part; if (body.length > 8192) { send(413, { error: 'Requete trop volumineuse.' }); return; } }
       let request;
       try { request = JSON.parse(body); } catch { return send(400, { error: 'Requete invalide.' }); }
-      if (!['status', 'list', 'save', 'apply', 'restore'].includes(request.action)) return send(400, { error: 'Action inconnue.' });
+      if (!['status', 'list', 'save', 'apply', 'restore', 'delete'].includes(request.action)) return send(400, { error: 'Action inconnue.' });
       if (['save', 'apply', 'restore'].includes(request.action) && !/^[a-f0-9-]{36}$/i.test(request.account || '')) return send(400, { error: 'Compte invalide.' });
-      if (['apply', 'restore'].includes(request.action) && !/^[A-Za-z0-9-]{1,100}$/.test(request.id || '')) return send(400, { error: 'Profil invalide.' });
+      if (['apply', 'restore', 'delete'].includes(request.action) && !/^[A-Za-z0-9-]{1,100}$/.test(request.id || '')) return send(400, { error: 'Profil invalide.' });
       if (request.action === 'save' && (typeof request.name !== 'string' || !request.name.trim() || request.name.length > 60)) return send(400, { error: 'Nom de profil invalide.' });
       send(200, { ok: true, result: await run(request) });
     } catch (error) { send(400, { error: error.message }); }

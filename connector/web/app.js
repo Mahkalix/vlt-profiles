@@ -12,6 +12,7 @@ function setButtons() {
   $('show-backups').disabled = state.busy || !state.online;
   for (const id of ['refresh', 'refresh-account']) $(id).disabled = state.busy;
   document.querySelectorAll('[data-apply]').forEach(button => button.disabled = state.busy || !state.account || state.gameRunning);
+  document.querySelectorAll('[data-delete]').forEach(button => button.disabled = state.busy || !state.online);
 }
 async function api(action, extra = {}) {
   if (!token) throw new Error('Lancez Demarrer.cmd dans le connecteur Windows. Il ouvrira cet onglet associé à votre PC.');
@@ -24,7 +25,7 @@ async function api(action, extra = {}) {
   if (response.status === 401) {
     token = null; sessionStorage.removeItem('vlt-pair');
     state.account = null;
-    throw new Error('Association expirée après le redémarrage du connecteur. Cliquez sur « Connecter mon compte » pour la renouveler.');
+    throw new Error('Association expirée après le redémarrage du connecteur. Cliquez sur « Connecter mon PC » pour la renouveler.');
   }
   if (!response.ok) throw new Error(data.error || 'Le connecteur a refusé cette opération.');
   return data.result;
@@ -53,7 +54,18 @@ function renderProfiles() {
     info.append(node('span', String(i + 1).padStart(2, '0'), 'profile-icon'), copy);
     const button = node('button', 'APPLIQUER ↗'); button.dataset.apply = profile.id;
     button.addEventListener('click', () => confirmApply(profile));
-    row.append(info, button); root.append(row);
+    const remove = node('button', 'SUPPRIMER', 'delete-button'); remove.dataset.delete = profile.id;
+    remove.setAttribute('aria-label', `Supprimer le profil ${profile.name}`);
+    remove.addEventListener('click', () => {
+      const content = node('div');
+      content.append(node('p', `Retirer « ${profile.name} » de vos profils ?`), node('p', 'Les réglages de vos comptes et vos sauvegardes restent inchangés. Une copie du fichier est conservée sur ce PC dans VLTProfiles/Profils-Supprimes.'));
+      modal('SUPPRIMER CE PROFIL ?', content, 'SUPPRIMER', () => {
+        $('modal').close();
+        run(async () => { await api('delete', { id: profile.id }); await loadLibrary(); notice(`Profil « ${profile.name} » supprimé de la bibliothèque.`, 'success'); });
+      });
+    });
+    const actions = node('div', '', 'profile-actions'); actions.append(button, remove);
+    row.append(info, actions); root.append(row);
   });
   setButtons();
 }
@@ -130,12 +142,17 @@ $('show-backups').addEventListener('click', () => run(async () => {
   modal('VOS POINTS DE RETOUR.', content, '', null);
   notice('Sauvegardes du compte connecté affichées.');
 }));
+function pairBrowser() {
+  location.assign('http://127.0.0.1:43187/launch'+(location.hostname === '127.0.0.1' ? '' : '?web=1'));
+}
 for (const id of ['refresh', 'refresh-account']) $(id).addEventListener('click', () => {
   if (!token) {
-    location.assign('http://127.0.0.1:43187/launch'+(location.hostname === '127.0.0.1' ? '' : '?web=1'));
+    pairBrowser();
     return;
   }
-  run(refresh);
+  run(async () => {
+    try { await refresh(); } catch (error) { if (!token) { pairBrowser(); return; } throw error; }
+  });
 });
 if (token && location.hostname === '127.0.0.1') run(refresh);
-else if (token) notice('Onglet associé au connecteur. Cliquez sur « Connecter mon compte » et autorisez l’accès au réseau local si demandé.');
+else if (token) notice('Onglet associé au connecteur. Cliquez sur « Connecter mon PC » et autorisez l’accès au réseau local si demandé.');

@@ -23,6 +23,16 @@ try {
             $path=Export-CloudProfile ([string]$request.name) ([string]$request.account)
             $result=@{id=[IO.Path]::GetFileNameWithoutExtension($path)}
         }
+        'delete' {
+            if($request.id -notmatch '^[A-Za-z0-9-]{1,100}$'){throw 'Identifiant de profil invalide.'}
+            $path=Join-Path $script:CloudProfiles ($request.id+'.json')
+            if(!(Test-Path -LiteralPath $path -PathType Leaf)){throw 'Ce profil a deja ete supprime.'}
+            $trash=Join-Path $script:DataRoot 'Profils-Supprimes'
+            [void](New-Item -ItemType Directory -Path $trash -Force)
+            $destination=Join-Path $trash ($request.id+'-'+[guid]::NewGuid().ToString('N')+'.json')
+            Move-Item -LiteralPath $path -Destination $destination
+            $result=@{deleted=$true}
+        }
         {$_ -in 'apply','restore'} {
             if($request.id -notmatch '^[A-Za-z0-9-]{1,100}$'){throw 'Identifiant de profil invalide.'}
             $folder=if($request.action -eq 'restore'){$script:CloudBackups}else{$script:CloudProfiles}
