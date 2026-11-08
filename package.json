@@ -1,0 +1,12 @@
+{
+  "name": "vlt-profiles",
+  "version": "1.0.0",
+  "private": true,
+  "description": "VALORANT settings profiles with a local Windows connector",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test test/*.test.mjs",
+    "start": "node connector/server.mjs"
+  },
+  "engines": { "node": ">=22" }
+}

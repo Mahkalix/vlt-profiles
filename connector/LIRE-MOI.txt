@@ -1,0 +1,14 @@
+VLT PROFILES / WINDOWS
+
+Prerequis : Node.js 22+ et PowerShell 7.
+Extrais tout le ZIP, puis double-clique Demarrer.cmd.
+Le connecteur ouvre le site avec une association temporaire pour cet onglet.
+Si le navigateur demande l'acces au reseau local, autorise-le pour ce site.
+Garde la fenetre du connecteur ouverte pendant l'utilisation.
+
+Connecte Riot Client au compte voulu. Pour appliquer ou restaurer, ferme VALORANT.
+Le site affiche le compte verifie et demande confirmation avant remplacement.
+Les profils et sauvegardes restent dans %LOCALAPPDATA%\VLTProfiles.
+Fermer le connecteur ne supprime rien. Copier ce dossier permet de le sauvegarder.
+Aucun jeton Riot n'est envoye au site ou enregistre dans les profils.
+L'API privee Riot peut evoluer. Ce logiciel n'est pas affilie a Riot Games.
