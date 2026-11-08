@@ -11,6 +11,10 @@ export const STATIC_ASSETS = {
     "app.js",
     "text/javascript"
   ],
+  "/workspace-state.js": [
+    "workspace-state.js",
+    "text/javascript"
+  ],
   "/i18n.js": [
     "i18n.js",
     "text/javascript"

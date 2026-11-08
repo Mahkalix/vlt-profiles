@@ -1,7 +1,8 @@
+import { workspaceView } from './workspace-state.js';
 import { setPwaBusy } from './pwa.js';
 import { t, language, translateError } from './i18n.js';
 const $ = id => document.getElementById(id);
-const state = { account: null, profiles: [], backups: [], busy: false, online: false, gameRunning: false };
+const state = { account: null, profiles: [], backups: [], busy: false, online: false, gameRunning: false, libraryLoaded: false };
 const hash = new URLSearchParams(location.hash.slice(1));
 if (/^[a-f0-9]{64}$/.test(hash.get('pair') || '')) {
   sessionStorage.setItem('vlt-pair', hash.get('pair'));
@@ -12,11 +13,24 @@ function notice(message, kind = '') { $('notice').textContent = message; $('noti
 function setButtons() {
   setPwaBusy(state.busy);
   document.querySelectorAll('[data-language]').forEach(button => button.disabled = state.busy);
-  $('new-profile').disabled = state.busy || !state.account;
+  const view = workspaceView(state);
+  $('new-profile').disabled = !view.canSave;
+  $('account-connection').textContent = t(view.connection);
+  $('account-connection').classList.toggle('connected', !!state.account);
+  $('refresh-account').textContent = t(state.busy ? 'CONNECTING…' : view.accountAction);
+  $('profile-count').textContent = state.libraryLoaded ? String(state.profiles.length).padStart(2, '0') : '—';
+  $('profiles').setAttribute('aria-busy', String(state.busy));
+  if ($('empty-title')) {
+    $('empty-title').textContent = t(view.emptyTitle);
+    $('empty-description').textContent = t(view.emptyDescription);
+    $('empty-action').textContent = t(view.emptyAction);
+    $('empty-action').disabled = state.busy;
+  }
+  $('account-guidance').textContent = t(state.account ? 'Profiles will be applied to the account shown above. Switching accounts? Refresh before applying.' : 'Your active Riot account is used to save and apply settings.');
   $('show-backups').disabled = state.busy || !state.online;
   for (const id of ['refresh', 'refresh-account']) $(id).disabled = state.busy;
-  document.querySelectorAll('[data-apply]').forEach(button => button.disabled = state.busy || !state.account || state.gameRunning);
-  document.querySelectorAll('[data-delete]').forEach(button => button.disabled = state.busy || !state.online);
+  document.querySelectorAll('[data-apply]').forEach(button => button.disabled = !view.canApply);
+  document.querySelectorAll('[data-delete]').forEach(button => button.disabled = !view.canDelete);
 }
 async function api(action, extra = {}) {
   if (!token) throw new Error(t('Run Demarrer.cmd in the Windows connector folder to pair this browser with your PC.'));
@@ -48,7 +62,12 @@ function renderProfiles() {
   $('profile-count').textContent = String(state.profiles.length).padStart(2, '0');
   if (!state.profiles.length) {
     const empty = node('div', '', 'empty');
-    empty.append(node('span', '[ + ]', 'empty-mark'), node('h4', t('Your next configuration starts here.')), node('p', t('Sign in to the source account in Riot Client, then save a profile. It will stay on this PC.')));
+    const art = node('div', '', 'empty-files'); art.setAttribute('aria-hidden','true'); art.append(node('i'),node('i'));
+    const title = node('h4'); title.id = 'empty-title';
+    const description = node('p'); description.id = 'empty-description';
+    const action = node('button', '', 'empty-action'); action.id = 'empty-action'; action.type = 'button'; action.addEventListener('click', emptyAction);
+    const guide = node('a', t('First time? Read the setup guide ↗')); guide.href = '/docs?lang='+language+'#setup';
+    empty.append(art, title, description, action, guide);
     root.append(empty);
   }
   state.profiles.forEach((profile, i) => {
@@ -56,7 +75,8 @@ function renderProfiles() {
     const info = node('div', '', 'profile-info');
     const copy = node('div'); copy.append(node('h4', profile.name), node('p', t('SAVED {date}', { date: date(profile.created) })));
     info.append(node('span', String(i + 1).padStart(2, '0'), 'profile-icon'), copy);
-    const button = node('button', t('APPLY ↗')); button.dataset.apply = profile.id;
+    const button = node('button', t('APPLY ↗'));
+    button.setAttribute('aria-label', t('Apply profile {name}', { name: profile.name })); button.dataset.apply = profile.id;
     button.addEventListener('click', () => confirmApply(profile));
     const remove = node('button', t('DELETE'), 'delete-button'); remove.dataset.delete = profile.id;
     remove.setAttribute('aria-label', t('Delete profile {name}', { name: profile.name }));
@@ -73,7 +93,7 @@ function renderProfiles() {
   });
   setButtons();
 }
-async function loadLibrary() { const library = await api('list'); state.profiles = library.profiles || []; state.backups = library.backups || []; renderProfiles(); }
+async function loadLibrary() { const library = await api('list'); state.profiles = library.profiles || []; state.backups = library.backups || []; state.libraryLoaded = true; renderProfiles(); }
 async function refresh() {
   state.account = null; setButtons();
   try {
@@ -149,7 +169,7 @@ $('show-backups').addEventListener('click', () => run(async () => {
 function pairBrowser() {
   location.assign('http://127.0.0.1:43187/launch?lang='+language+(location.hostname === '127.0.0.1' ? '' : '&web=1'));
 }
-for (const id of ['refresh', 'refresh-account']) $(id).addEventListener('click', () => {
+function connectAccount() {
   if (!token) {
     pairBrowser();
     return;
@@ -157,6 +177,10 @@ for (const id of ['refresh', 'refresh-account']) $(id).addEventListener('click',
   run(async () => {
     try { await refresh(); } catch (error) { if (!token) { pairBrowser(); return; } throw error; }
   });
-});
+}
+for (const id of ['refresh', 'refresh-account']) $(id).addEventListener('click', connectAccount);
+function emptyAction() { if (state.account) $('new-profile').click(); else connectAccount(); }
+$('empty-action').addEventListener('click', emptyAction);
+setButtons();
 if (token && location.hostname === '127.0.0.1') run(refresh);
 else if (token) notice(t('Browser paired. Click Connect my PC and allow local network access if asked.'));

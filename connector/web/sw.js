@@ -1,6 +1,6 @@
 // Build injects a content hash and an explicit list of public, static assets.
-const CACHE_NAME = 'vlt-public-ce3223027884f51a';
-const PUBLIC_ASSETS = ["/","/docs.html","/app.js","/i18n.js","/translations.js","/pwa.js","/style.css","/fonts.css","/icon.svg","/manifest.webmanifest","/assets/fonts/font-0.ttf","/assets/fonts/font-1.ttf","/assets/fonts/font-2.ttf","/assets/fonts/font-3.ttf","/assets/fonts/font-4.ttf","/assets/fonts/font-5.ttf","/assets/fonts/font-6.ttf","/assets/icons/icon-180.png","/assets/icons/icon-192.png","/assets/icons/icon-512.png","/assets/riot/ascent.png","/assets/riot/haven.png","/assets/riot/lotus.png","/assets/riot/sunset.png"];
+const CACHE_NAME = 'vlt-public-6e487eb7dd9d7bff';
+const PUBLIC_ASSETS = ["/","/docs.html","/app.js","/workspace-state.js","/i18n.js","/translations.js","/pwa.js","/style.css","/fonts.css","/icon.svg","/manifest.webmanifest","/assets/fonts/font-0.ttf","/assets/fonts/font-1.ttf","/assets/fonts/font-2.ttf","/assets/fonts/font-3.ttf","/assets/fonts/font-4.ttf","/assets/fonts/font-5.ttf","/assets/fonts/font-6.ttf","/assets/icons/icon-180.png","/assets/icons/icon-192.png","/assets/icons/icon-512.png","/assets/riot/ascent.png","/assets/riot/haven.png","/assets/riot/lotus.png","/assets/riot/sunset.png"];
 const ALLOWED = new Set(PUBLIC_ASSETS);
 function cacheKey(request) {
   if (request.method !== 'GET' || request.headers.has('authorization')) return null;
