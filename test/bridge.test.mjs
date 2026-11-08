@@ -45,3 +45,12 @@ test('concurrent operations are serialized', async t => {
   assert.equal((await request({ action: 'list' })).status, 409);
   release(); assert.equal((await first).status, 200);
 });
+test('local interface works without cross-origin permission and exposes no private files', async t => {
+  const { request, url } = await fixture(t);
+  const localOrigin = new URL(url).origin;
+  assert.equal((await request({ action: 'list' }, { Origin: localOrigin })).status, 200);
+  const page = await fetch(localOrigin + '/');
+  assert.equal(page.status, 200);
+  assert.match(await page.text(), /VLT/);
+  assert.equal((await fetch(localOrigin + '/worker.ps1')).status, 403);
+});

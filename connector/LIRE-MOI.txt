@@ -2,8 +2,8 @@ VLT PROFILES / WINDOWS
 
 Prerequis : Node.js 22+ et PowerShell 7.
 Extrais tout le ZIP, puis double-clique Demarrer.cmd.
-Le connecteur ouvre le site avec une association temporaire pour cet onglet.
-Si le navigateur demande l'acces au reseau local, autorise-le pour ce site.
+Le connecteur ouvre une copie locale du site, associee automatiquement au PC.
+Cette interface locale evite l'autorisation reseau HTTPS vers le PC.
 Garde la fenetre du connecteur ouverte pendant l'utilisation.
 
 Connecte Riot Client au compte voulu. Pour appliquer ou restaurer, ferme VALORANT.

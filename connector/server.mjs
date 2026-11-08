@@ -3,6 +3,7 @@ import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { readFile } from 'node:fs/promises';
 
 export const SITE = 'https://vlt-profiles-mahkalix.vercel.app';
 const dir = path.dirname(fileURLToPath(import.meta.url));
@@ -30,8 +31,18 @@ export function createBridge({ token = randomBytes(32).toString('hex'), origin =
   const server = http.createServer(async (req, res) => {
     const send = (code, data) => { res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }); res.end(JSON.stringify(data)); };
     // Exact origin and loopback Host checks defend against CSRF and DNS rebinding.
-    if (!/^127\.0\.0\.1:\d+$/.test(req.headers.host || '') || req.headers.origin !== origin) return send(403, { error: 'Origine refusee.' });
-    res.setHeader('Access-Control-Allow-Origin', origin);
+    if (!/^127\.0\.0\.1:\d+$/.test(req.headers.host || '')) return send(403, { error: 'Hote refuse.' });
+    const localOrigin = 'http://' + req.headers.host;
+    const assets = { '/': ['index.html','text/html'], '/app.js': ['app.js','text/javascript'], '/style.css': ['style.css','text/css'], '/icon.svg': ['icon.svg','image/svg+xml'] };
+    if (req.method === 'GET' && Object.hasOwn(assets, req.url)) {
+      try {
+        const [file, type] = assets[req.url];
+        const body = await readFile(path.join(dir, 'web', file));
+        res.writeHead(200, { 'Content-Type': type+'; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }); return res.end(body);
+      } catch { return send(404, { error: 'Interface locale manquante. Telecharge la derniere version du connecteur.' }); }
+    }
+    if (![origin, localOrigin].includes(req.headers.origin)) return send(403, { error: 'Origine refusee.' });
+    res.setHeader('Access-Control-Allow-Origin', req.headers.origin);
     res.setHeader('Vary', 'Origin');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
@@ -62,7 +73,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const bridge = createBridge();
   bridge.server.on('error', () => { console.error('Connecteur deja ouvert ou port 43187 indisponible. Ferme son ancienne fenetre puis relance.'); process.exitCode = 1; });
   bridge.server.listen(43187, '127.0.0.1', () => {
-    const url = `${SITE}/#pair=${bridge.token}`;
+    const url = `http://127.0.0.1:43187/#pair=${bridge.token}`;
     console.log('VLT PROFILES | Connecteur actif. Garde cette fenetre ouverte.');
     console.log('Les profils sont stockes dans %LOCALAPPDATA%\\VLTProfiles.');
     spawn('explorer.exe', [url], { windowsHide: true, stdio: 'ignore' }).on('error', () => console.error('Impossible d ouvrir le navigateur. Relance le connecteur.'));

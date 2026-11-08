@@ -17,7 +17,8 @@ async function api(action, extra = {}) {
   if (!token) throw new Error('Lancez Demarrer.cmd dans le connecteur Windows. Il ouvrira cet onglet associé à votre PC.');
   let response;
   try {
-    response = await fetch('http://127.0.0.1:43187/api', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ action, ...extra }), signal: AbortSignal.timeout(['apply','restore','save'].includes(action) ? 125_000 : 12_000), cache: 'no-store' });
+    const endpoint = location.hostname === '127.0.0.1' ? location.origin + '/api' : 'http://127.0.0.1:43187/api';
+    response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ action, ...extra }), signal: AbortSignal.timeout(['apply','restore','save'].includes(action) ? 125_000 : 12_000), cache: 'no-store' });
   } catch { throw new Error('Connecteur inaccessible. Lancez Demarrer.cmd et autorisez l’accès au réseau local si le navigateur le demande.'); }
   const data = await response.json();
   if (!response.ok) throw new Error(data.error || 'Le connecteur a refusé cette opération.');
