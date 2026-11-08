@@ -35,6 +35,7 @@ La méthode a été validée sur les comptes du créateur. La compatibilité sur
 ```sh
 npm install
 npm test
+npm run test:engine
 npm run build
 ```
 
@@ -45,3 +46,5 @@ Le ZIP `public/downloads/vlt-connector.zip` doit être régénéré après une m
 ## Origine de la méthode
 
 L'approche de transfert par le service de préférences Riot a été vérifiée dans le code public de [ValoUtils](https://github.com/windowsedd/ValoUtils/blob/master/src-tauri/src/riot/settings.rs). Ce projet utilise une interface et un connecteur distincts.
+
+La direction graphique s'inspire du [site officiel VALORANT](https://playvalorant.com/fr-fr/). Le bandeau utilise une vidéo diffusée par le CDN officiel de Riot. Les éléments VALORANT appartiennent à leurs ayants droit.

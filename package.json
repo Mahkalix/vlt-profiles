@@ -6,6 +6,7 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "test": "node --test test/*.test.mjs",
+    "test:engine": "pwsh -NoProfile -File test/cloud-engine.tests.ps1",
     "start": "node connector/server.mjs"
   },
   "engines": { "node": ">=22" }

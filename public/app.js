@@ -81,7 +81,6 @@ function modal(title, content, confirmLabel, action) {
   modalAction = action; $('modal').showModal();
 }
 $('modal-confirm').addEventListener('click', () => { if (modalAction) modalAction(); });
-$('modal').addEventListener('close', () => { modalAction = null; });
 function confirmApply(profile, restore = false) {
   if (!state.account || state.busy) return;
   const account = { ...state.account };
@@ -103,6 +102,7 @@ $('new-profile').addEventListener('click', () => {
   const content = node('div'); content.append(node('p', `Enregistrez les réglages synchronisés de ${account.name}. Chaque enregistrement crée une nouvelle version.`));
   const label = node('label', 'Nom du profil'); label.htmlFor = 'profile-name';
   const input = node('input'); input.id = 'profile-name'; input.maxLength = 60; input.value = account.name; input.autocomplete = 'off';
+  input.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); $('modal-confirm').click(); } });
   content.append(label, input);
   modal('GARDEZ VOS REPÈRES.', content, 'ENREGISTRER ↗', () => {
     const name = input.value.trim(); if (!name) { input.focus(); return; }
