@@ -15,53 +15,53 @@ function setButtons() {
   document.querySelectorAll('[data-delete]').forEach(button => button.disabled = state.busy || !state.online);
 }
 async function api(action, extra = {}) {
-  if (!token) throw new Error('Lancez Demarrer.cmd dans le connecteur Windows. Il ouvrira cet onglet associé à votre PC.');
+  if (!token) throw new Error('Run Demarrer.cmd in the Windows connector folder to pair this browser with your PC.');
   let response;
   try {
     const endpoint = location.hostname === '127.0.0.1' ? location.origin + '/api' : 'http://127.0.0.1:43187/api';
     response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ action, ...extra }), signal: AbortSignal.timeout(['apply','restore','save'].includes(action) ? 125_000 : 12_000), cache: 'no-store' });
-  } catch { throw new Error('Connecteur inaccessible. Lancez Demarrer.cmd et autorisez l’accès au réseau local si le navigateur le demande.'); }
+  } catch { throw new Error('Connector unavailable. Run Demarrer.cmd and allow local network access if your browser asks.'); }
   const data = await response.json();
   if (response.status === 401) {
     token = null; sessionStorage.removeItem('vlt-pair');
     state.account = null;
-    throw new Error('Association expirée après le redémarrage du connecteur. Cliquez sur « Connecter mon PC » pour la renouveler.');
+    throw new Error('Pairing expired after the connector restarted. Click Connect my PC to renew it.');
   }
-  if (!response.ok) throw new Error(data.error || 'Le connecteur a refusé cette opération.');
+  if (!response.ok) throw new Error(data.error || 'The connector rejected this operation.');
   return data.result;
 }
 async function run(action) {
   if (state.busy) return;
   state.busy = true; setButtons();
-  notice('Opération en cours… Gardez Riot Client sur le même compte.');
+  notice('Working… Keep Riot Client signed in to the same account.');
   try { await action(); } catch (error) { notice(error.message, 'error'); }
   finally { state.busy = false; setButtons(); }
 }
-function date(value) { return new Date(value).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }); }
+function date(value) { return new Date(value).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }); }
 function node(tag, text, className) { const element = document.createElement(tag); if (text) element.textContent = text; if (className) element.className = className; return element; }
 function renderProfiles() {
   const root = $('profiles'); root.replaceChildren();
   $('profile-count').textContent = String(state.profiles.length).padStart(2, '0');
   if (!state.profiles.length) {
     const empty = node('div', '', 'empty');
-    empty.append(node('span', '[ + ]', 'empty-mark'), node('h4', 'Votre prochaine configuration commence ici.'), node('p', 'Connectez le compte source dans Riot Client, puis créez un profil. Il restera disponible sur ce PC.'));
+    empty.append(node('span', '[ + ]', 'empty-mark'), node('h4', 'Your next configuration starts here.'), node('p', 'Sign in to the source account in Riot Client, then save a profile. It will stay on this PC.'));
     root.append(empty);
   }
   state.profiles.forEach((profile, i) => {
     const row = node('article', '', 'profile-row');
     const info = node('div', '', 'profile-info');
-    const copy = node('div'); copy.append(node('h4', profile.name), node('p', `ENREGISTRÉ LE ${date(profile.created)}`));
+    const copy = node('div'); copy.append(node('h4', profile.name), node('p', `SAVED ${date(profile.created)}`));
     info.append(node('span', String(i + 1).padStart(2, '0'), 'profile-icon'), copy);
-    const button = node('button', 'APPLIQUER ↗'); button.dataset.apply = profile.id;
+    const button = node('button', 'APPLY ↗'); button.dataset.apply = profile.id;
     button.addEventListener('click', () => confirmApply(profile));
-    const remove = node('button', 'SUPPRIMER', 'delete-button'); remove.dataset.delete = profile.id;
-    remove.setAttribute('aria-label', `Supprimer le profil ${profile.name}`);
+    const remove = node('button', 'DELETE', 'delete-button'); remove.dataset.delete = profile.id;
+    remove.setAttribute('aria-label', `Delete profile ${profile.name}`);
     remove.addEventListener('click', () => {
       const content = node('div');
-      content.append(node('p', `Retirer « ${profile.name} » de vos profils ?`), node('p', 'Les réglages de vos comptes et vos sauvegardes restent inchangés. Une copie du fichier est conservée sur ce PC dans VLTProfiles/Profils-Supprimes.'));
-      modal('SUPPRIMER CE PROFIL ?', content, 'SUPPRIMER', () => {
+      content.append(node('p', `Remove “${profile.name}” from your profiles?`), node('p', 'Account settings and backups will stay unchanged. A copy of the file is kept on this PC in VLTProfiles/Profils-Supprimes.'));
+      modal('DELETE THIS PROFILE?', content, 'DELETE', () => {
         $('modal').close();
-        run(async () => { await api('delete', { id: profile.id }); await loadLibrary(); notice(`Profil « ${profile.name} » supprimé de la bibliothèque.`, 'success'); });
+        run(async () => { await api('delete', { id: profile.id }); await loadLibrary(); notice(`Profile “${profile.name}” removed from the library.`, 'success'); });
       });
     });
     const actions = node('div', '', 'profile-actions'); actions.append(button, remove);
@@ -76,17 +76,17 @@ async function refresh() {
     const status = await api('status');
     state.account = status.account; state.gameRunning = status.gameRunning; state.online = true;
     $('account-name').textContent = state.account.name;
-    $('account-detail').textContent = `Compte vérifié : ${state.account.id.slice(0, 8)}…`;
-    $('game-state').textContent = state.gameRunning ? 'FERMEZ VALORANT POUR APPLIQUER UN PROFIL' : 'PRÊT POUR LE TRANSFERT';
+    $('account-detail').textContent = `Verified account: ${state.account.id.slice(0, 8)}…`;
+    $('game-state').textContent = state.gameRunning ? 'CLOSE VALORANT TO APPLY A PROFILE' : 'READY TO TRANSFER';
     $('game-state').className = `account-status ${state.gameRunning ? '' : 'ready'}`;
-    $('bridge-state').textContent = 'CONNECTEUR EN LIGNE'; $('bridge-state').className = 'connection online';
+    $('bridge-state').textContent = 'CONNECTOR ONLINE'; $('bridge-state').className = 'connection online';
     await loadLibrary();
-    notice(state.gameRunning ? 'Vos profils sont disponibles. Fermez VALORANT, puis actualisez pour appliquer une configuration.' : 'Compte vérifié. Vous pouvez enregistrer ses réglages ou lui appliquer un profil.', 'success');
+    notice(state.gameRunning ? 'Your profiles are ready. Close VALORANT, then detect the account again to apply a profile.' : 'Account verified. Save its settings or apply a profile to this account.', 'success');
   } catch (error) {
     state.online = false; state.account = null;
-    $('bridge-state').textContent = 'CONNEXION À VÉRIFIER'; $('bridge-state').className = 'connection';
-    $('account-name').textContent = 'Compte non vérifié'; $('account-detail').textContent = 'Connectez Riot Client et actualisez.';
-    $('game-state').textContent = 'RIOT CLIENT REQUIS'; $('game-state').className = 'account-status';
+    $('bridge-state').textContent = 'CHECK CONNECTION'; $('bridge-state').className = 'connection';
+    $('account-name').textContent = 'Account not verified'; $('account-detail').textContent = 'Sign in to Riot Client and detect the account again.';
+    $('game-state').textContent = 'RIOT CLIENT REQUIRED'; $('game-state').className = 'account-status';
     // Profiles remain available even when Riot Client is signed out.
     try { await loadLibrary(); state.online = true; } catch { /* the connector may also be closed */ }
     throw error;
@@ -103,29 +103,29 @@ function confirmApply(profile, restore = false) {
   if (!state.account || state.busy) return;
   const account = { ...state.account };
   const content = node('div');
-  const text = node('p'); text.append('Appliquer ', node('strong', profile.name), ' sur ', node('strong', account.name), ' ?');
-  content.append(text, node('p', 'Les réglages actuels seront sauvegardés avant le remplacement. Gardez VALORANT fermé et Riot Client sur ce compte.'));
-  modal(restore ? 'RESTAURER LES RÉGLAGES ?' : 'PRÊT À CHANGER DE CONFIG ?', content, restore ? 'RESTAURER ↗' : 'APPLIQUER LE PROFIL ↗', () => {
+  const text = node('p'); text.append('Apply ', node('strong', profile.name), ' to ', node('strong', account.name), ' ?');
+  content.append(text, node('p', 'Current settings will be backed up before replacement. Keep VALORANT closed and Riot Client on this account.'));
+  modal(restore ? 'RESTORE SETTINGS?' : 'APPLY THIS CONFIGURATION?', content, restore ? 'RESTORE ↗' : 'APPLY PROFILE ↗', () => {
     $('modal').close();
     run(async () => {
       await api(restore ? 'restore' : 'apply', { id: profile.id, account: account.id });
       await loadLibrary();
-      notice(`Profil « ${profile.name} » enregistré chez Riot et relu à l’identique sur ${account.name}. Lancez VALORANT.`, 'success');
+      notice(`Profile “${profile.name}” saved to Riot and verified on ${account.name}. You can launch VALORANT.`, 'success');
     });
   });
 }
 $('new-profile').addEventListener('click', () => {
   if (!state.account) return;
   const account = { ...state.account };
-  const content = node('div'); content.append(node('p', `Enregistrez les réglages synchronisés de ${account.name}. Chaque enregistrement crée une nouvelle version.`));
-  const label = node('label', 'Nom du profil'); label.htmlFor = 'profile-name';
+  const content = node('div'); content.append(node('p', `Save synchronized settings from ${account.name}. Each save creates a new version.`));
+  const label = node('label', 'Profile name'); label.htmlFor = 'profile-name';
   const input = node('input'); input.id = 'profile-name'; input.maxLength = 60; input.value = account.name; input.autocomplete = 'off';
   input.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); $('modal-confirm').click(); } });
   content.append(label, input);
-  modal('GARDEZ VOS REPÈRES.', content, 'ENREGISTRER ↗', () => {
+  modal('SAVE YOUR CONFIGURATION.', content, 'SAVE ↗', () => {
     const name = input.value.trim(); if (!name) { input.focus(); return; }
     $('modal').close();
-    run(async () => { await api('save', { name, account: account.id }); await loadLibrary(); notice(`Profil « ${name} » enregistré sur ce PC. Il restera disponible après redémarrage.`, 'success'); });
+    run(async () => { await api('save', { name, account: account.id }); await loadLibrary(); notice(`Profile “${name}” saved on this PC. It will remain available after restarting.`, 'success'); });
   });
   input.focus(); input.select();
 });
@@ -133,14 +133,14 @@ $('show-backups').addEventListener('click', () => run(async () => {
   await loadLibrary();
   const content = node('div', '', 'backup-list');
   const backups = state.backups.filter(backup => backup.source === state.account?.id);
-  if (!backups.length) content.append(node('p', 'Aucune sauvegarde pour le compte connecté. Elles sont créées automatiquement avant chaque transfert.'));
+  if (!backups.length) content.append(node('p', 'No backups for this account yet. Backups are created automatically before each transfer.'));
   for (const backup of backups) {
-    const row = node('div', '', 'backup-row'); const button = node('button', 'RESTAURER ↗');
+    const row = node('div', '', 'backup-row'); const button = node('button', 'RESTORE ↗');
     row.append(node('p', `${backup.name} · ${date(backup.created)}`), button);
     button.addEventListener('click', () => { $('modal').close(); confirmApply(backup, true); }); content.append(row);
   }
-  modal('VOS POINTS DE RETOUR.', content, '', null);
-  notice('Sauvegardes du compte connecté affichées.');
+  modal('YOUR BACKUPS.', content, '', null);
+  notice('Showing backups for the detected account.');
 }));
 function pairBrowser() {
   location.assign('http://127.0.0.1:43187/launch'+(location.hostname === '127.0.0.1' ? '' : '?web=1'));
@@ -155,4 +155,4 @@ for (const id of ['refresh', 'refresh-account']) $(id).addEventListener('click',
   });
 });
 if (token && location.hostname === '127.0.0.1') run(refresh);
-else if (token) notice('Onglet associé au connecteur. Cliquez sur « Connecter mon PC » et autorisez l’accès au réseau local si demandé.');
+else if (token) notice('Browser paired. Click Connect my PC and allow local network access if asked.');

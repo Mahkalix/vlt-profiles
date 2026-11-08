@@ -24,9 +24,9 @@ try {
             $result=@{id=[IO.Path]::GetFileNameWithoutExtension($path)}
         }
         'delete' {
-            if($request.id -notmatch '^[A-Za-z0-9-]{1,100}$'){throw 'Identifiant de profil invalide.'}
+            if($request.id -notmatch '^[A-Za-z0-9-]{1,100}$'){throw 'Invalid profile ID.'}
             $path=Join-Path $script:CloudProfiles ($request.id+'.json')
-            if(!(Test-Path -LiteralPath $path -PathType Leaf)){throw 'Ce profil a deja ete supprime.'}
+            if(!(Test-Path -LiteralPath $path -PathType Leaf)){throw 'This profile has already been deleted.'}
             $trash=Join-Path $script:DataRoot 'Profils-Supprimes'
             [void](New-Item -ItemType Directory -Path $trash -Force)
             $destination=Join-Path $trash ($request.id+'-'+[guid]::NewGuid().ToString('N')+'.json')
@@ -34,13 +34,13 @@ try {
             $result=@{deleted=$true}
         }
         {$_ -in 'apply','restore'} {
-            if($request.id -notmatch '^[A-Za-z0-9-]{1,100}$'){throw 'Identifiant de profil invalide.'}
+            if($request.id -notmatch '^[A-Za-z0-9-]{1,100}$'){throw 'Invalid profile ID.'}
             $folder=if($request.action -eq 'restore'){$script:CloudBackups}else{$script:CloudProfiles}
             $path=Join-Path $folder ($request.id+'.json')
             $backup=Apply-CloudProfile $path ([string]$request.account) -Restore:($request.action -eq 'restore')
             $result=@{verified=$true; backup=[IO.Path]::GetFileNameWithoutExtension($backup)}
         }
-        default {throw 'Action inconnue.'}
+        default {throw 'Unknown action.'}
     }
     @{ok=$true; result=$result} | ConvertTo-Json -Depth 15 -Compress | Write-Output
 } catch {

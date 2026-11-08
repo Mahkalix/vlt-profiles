@@ -11,16 +11,16 @@ export function worker(request) {
   return new Promise((resolve, reject) => {
     const child = spawn('pwsh.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.join(dir, 'worker.ps1')], { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
     let output = '';
-    const timeout = setTimeout(() => { child.kill(); reject(new Error('Operation interrompue apres 120 secondes. Verifie le compte avant de reessayer.')); }, 120_000);
+    const timeout = setTimeout(() => { child.kill(); reject(new Error('Operation timed out after 120 seconds. Check the account before retrying.')); }, 120_000);
     child.stdout.setEncoding('utf8');
     child.stdout.on('data', data => { output += data; if (output.length > 1_000_000) child.kill(); });
     // Do not log raw subprocess output: it can contain local account details.
     child.stderr.resume();
-    child.on('error', () => { clearTimeout(timeout); reject(new Error('PowerShell 7 introuvable. Installe-le, puis relance le connecteur.')); });
+    child.on('error', () => { clearTimeout(timeout); reject(new Error('PowerShell 7 not found. Install it and restart the connector.')); });
     child.on('close', () => {
       clearTimeout(timeout);
       try { const response = JSON.parse(output.replace(/^\uFEFF/, '').trim()); if (!response.ok) throw new Error(response.error); resolve(response.result); }
-      catch (error) { reject(new Error(error instanceof SyntaxError ? 'Le connecteur local a renvoye une reponse invalide.' : error.message)); }
+      catch (error) { reject(new Error(error instanceof SyntaxError ? 'The local connector returned an invalid response.' : error.message)); }
     });
     child.stdin.on('error', () => {});
     child.stdin.end(JSON.stringify(request));
@@ -31,21 +31,21 @@ export function createBridge({ token = randomBytes(32).toString('hex'), origin =
   const server = http.createServer(async (req, res) => {
     const send = (code, data) => { res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }); res.end(JSON.stringify(data)); };
     // Exact origin and loopback Host checks defend against CSRF and DNS rebinding.
-    if (!/^127\.0\.0\.1:\d+$/.test(req.headers.host || '')) return send(403, { error: 'Hote refuse.' });
+    if (!/^127\.0\.0\.1:\d+$/.test(req.headers.host || '')) return send(403, { error: 'Host rejected.' });
     const localOrigin = 'http://' + req.headers.host;
     if (req.method === 'GET' && ['/launch','/launch?web=1'].includes(req.url)) {
       const destination = req.url === '/launch?web=1' ? origin+'/' : '/';
       res.writeHead(302, { Location: destination+'#pair='+token, 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' }); return res.end();
     }
-    const assets = { '/': ['index.html','text/html'], '/app.js': ['app.js','text/javascript'], '/style.css': ['style.css','text/css'], '/icon.svg': ['icon.svg','image/svg+xml'] };
+    const assets = { '/docs': ['docs.html','text/html'], '/docs/': ['docs.html','text/html'], '/docs.html': ['docs.html','text/html'], '/': ['index.html','text/html'], '/app.js': ['app.js','text/javascript'], '/style.css': ['style.css','text/css'], '/icon.svg': ['icon.svg','image/svg+xml'] };
     if (req.method === 'GET' && Object.hasOwn(assets, req.url)) {
       try {
         const [file, type] = assets[req.url];
         const body = await readFile(path.join(dir, 'web', file));
         res.writeHead(200, { 'Content-Type': type+'; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }); return res.end(body);
-      } catch { return send(404, { error: 'Interface locale manquante. Telecharge la derniere version du connecteur.' }); }
+      } catch { return send(404, { error: 'Local interface missing. Download the latest connector.' }); }
     }
-    if (![origin, localOrigin].includes(req.headers.origin)) return send(403, { error: 'Origine refusee.' });
+    if (![origin, localOrigin].includes(req.headers.origin)) return send(403, { error: 'Origin rejected.' });
     res.setHeader('Access-Control-Allow-Origin', req.headers.origin);
     res.setHeader('Vary', 'Origin');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -54,19 +54,19 @@ export function createBridge({ token = randomBytes(32).toString('hex'), origin =
     if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
     const provided = Buffer.from((req.headers.authorization || '').replace(/^Bearer /, ''));
     const expected = Buffer.from(token);
-    if (provided.length !== expected.length || !timingSafeEqual(provided, expected)) return send(401, { error: 'Relance le connecteur pour associer cet onglet.' });
-    if (req.method !== 'POST' || req.url !== '/api') return send(404, { error: 'Route inconnue.' });
-    if (busy) return send(409, { error: 'Une operation est deja en cours.' });
+    if (provided.length !== expected.length || !timingSafeEqual(provided, expected)) return send(401, { error: 'Pair this browser with the connector again.' });
+    if (req.method !== 'POST' || req.url !== '/api') return send(404, { error: 'Unknown route.' });
+    if (busy) return send(409, { error: 'Another operation is already running.' });
     busy = true;
     try {
       let body = '';
-      for await (const part of req) { body += part; if (body.length > 8192) { send(413, { error: 'Requete trop volumineuse.' }); return; } }
+      for await (const part of req) { body += part; if (body.length > 8192) { send(413, { error: 'Request too large.' }); return; } }
       let request;
-      try { request = JSON.parse(body); } catch { return send(400, { error: 'Requete invalide.' }); }
-      if (!['status', 'list', 'save', 'apply', 'restore', 'delete'].includes(request.action)) return send(400, { error: 'Action inconnue.' });
-      if (['save', 'apply', 'restore'].includes(request.action) && !/^[a-f0-9-]{36}$/i.test(request.account || '')) return send(400, { error: 'Compte invalide.' });
-      if (['apply', 'restore', 'delete'].includes(request.action) && !/^[A-Za-z0-9-]{1,100}$/.test(request.id || '')) return send(400, { error: 'Profil invalide.' });
-      if (request.action === 'save' && (typeof request.name !== 'string' || !request.name.trim() || request.name.length > 60)) return send(400, { error: 'Nom de profil invalide.' });
+      try { request = JSON.parse(body); } catch { return send(400, { error: 'Invalid request.' }); }
+      if (!['status', 'list', 'save', 'apply', 'restore', 'delete'].includes(request.action)) return send(400, { error: 'Unknown action.' });
+      if (['save', 'apply', 'restore'].includes(request.action) && !/^[a-f0-9-]{36}$/i.test(request.account || '')) return send(400, { error: 'Invalid account.' });
+      if (['apply', 'restore', 'delete'].includes(request.action) && !/^[A-Za-z0-9-]{1,100}$/.test(request.id || '')) return send(400, { error: 'Invalid profile.' });
+      if (request.action === 'save' && (typeof request.name !== 'string' || !request.name.trim() || request.name.length > 60)) return send(400, { error: 'Invalid profile name.' });
       send(200, { ok: true, result: await run(request) });
     } catch (error) { send(400, { error: error.message }); }
     finally { busy = false; }

@@ -53,4 +53,12 @@ test('local interface works without cross-origin permission and exposes no priva
   assert.equal(page.status, 200);
   assert.match(await page.text(), /VLT/);
   assert.equal((await fetch(localOrigin + '/worker.ps1')).status, 403);
+  for (const route of ['/docs', '/docs/', '/docs.html']) {
+    const docs = await fetch(localOrigin + route);
+    assert.equal(docs.status, 200);
+    const html = await docs.text();
+    assert.match(html, /<html lang="en">/);
+    assert.match(html, /Documentation sections/);
+    assert.doesNotMatch(html, /src="\/app.js"/);
+  }
 });
