@@ -1,4 +1,5 @@
 import { workspaceView } from './workspace-state.js';
+import { connectorRequest, networkPermission } from './connector-client.js';
 import { setPwaBusy } from './pwa.js';
 import { t, language, translateError } from './i18n.js';
 const $ = id => document.getElementById(id);
@@ -36,9 +37,12 @@ async function api(action, extra = {}) {
   if (!token) throw new Error(t('Run Demarrer.cmd in the Windows connector folder to pair this browser with your PC.'));
   let response;
   try {
-    const endpoint = location.hostname === '127.0.0.1' ? location.origin + '/api' : 'http://127.0.0.1:43187/api';
-    response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ action, ...extra }), signal: AbortSignal.timeout(['apply','restore','save'].includes(action) ? 125_000 : 12_000), cache: 'no-store' });
-  } catch { throw new Error(t('Connector unavailable. Run Demarrer.cmd and allow local network access if your browser asks.')); }
+    const request = connectorRequest(action, extra, token, location.origin, location.hostname === '127.0.0.1');
+    response = await fetch(request.url, request.options);
+  } catch {
+    const denied = await networkPermission() === 'denied';
+    throw new Error(t(denied ? 'PC access is blocked. In this site’s browser settings, allow local network or loopback access, then click Connect my PC again.' : 'Connector unavailable. Run Demarrer.cmd and allow local network access if your browser asks.'));
+  }
   const data = await response.json();
   if (response.status === 401) {
     token = null; sessionStorage.removeItem('vlt-pair');
@@ -183,4 +187,10 @@ function emptyAction() { if (state.account) $('new-profile').click(); else conne
 $('empty-action').addEventListener('click', emptyAction);
 setButtons();
 if (token && location.hostname === '127.0.0.1') run(refresh);
-else if (token) notice(t('Browser paired. Click Connect my PC and allow local network access if asked.'));
+else if (token) {
+  notice(t('Browser paired. Click Connect my PC and allow local network access if asked.'));
+  networkPermission().then(permission => {
+    if (permission === 'granted' && !state.busy && !state.online) run(refresh);
+    else if (permission === 'denied') notice(t('PC access is blocked. In this site’s browser settings, allow local network or loopback access, then click Connect my PC again.'), 'error');
+  });
+}

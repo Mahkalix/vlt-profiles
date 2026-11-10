@@ -8,7 +8,7 @@ Une interface inspirée de VALORANT pour enregistrer et transférer les préfér
 
 1. Téléchargez le connecteur Windows depuis le site et extrayez le ZIP.
 2. Installez Node.js 22+ et PowerShell 7 si nécessaire, puis lancez `Demarrer.cmd`.
-3. Le connecteur ouvre une copie locale de l'interface avec une association temporaire pour cet onglet. Ce mode évite l'autorisation d'accès au réseau local depuis HTTPS.
+3. Le connecteur ouvre le site Vercel avec une association temporaire pour cet onglet. Cliquez sur Connecter mon PC et autorisez l'accès au PC/réseau local si le navigateur le demande. Les visites suivantes se reconnectent automatiquement si cette autorisation est déjà accordée.
 4. Connectez le compte source dans Riot Client, actualisez sur le site et créez un profil.
 5. Connectez le compte destination, fermez VALORANT, actualisez et appliquez le profil.
 
@@ -24,7 +24,7 @@ Le connecteur conserve les jetons Riot en mémoire, sans les renvoyer au navigat
 
 ## Fonctionnement
 
-Le site statique communique directement avec le compagnon Windows. Le compagnon sert aussi la même interface en local (mode ouvert par défaut), pour les navigateurs qui bloquent les connexions depuis HTTPS vers le PC. Celui-ci utilise la session Riot Client et l'API privée `Ares.PlayerSettings`. Il sauvegarde le bloc de préférences encodé sans supprimer les paramètres inconnus, puis vérifie sa relecture après un transfert.
+Le site statique communique directement avec le compagnon Windows. Le compagnon sert aussi une interface de secours sur `http://127.0.0.1:43187/launch?local=1`. Le site Vercel reste l'interface ouverte par défaut. Celui-ci utilise la session Riot Client et l'API privée `Ares.PlayerSettings`. Il sauvegarde le bloc de préférences encodé sans supprimer les paramètres inconnus, puis vérifie sa relecture après un transfert.
 
 Le transfert concerne les préférences synchronisées présentes dans ce bloc. Les réglages uniquement locaux ou liés au matériel ne sont pas garantis. Il ne transfère ni compte, ni progression, ni objets. L'API privée peut évoluer et rendre la méthode indisponible. Ce projet n'est ni affilié ni approuvé par Riot Games.
 

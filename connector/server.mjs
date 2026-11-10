@@ -39,7 +39,7 @@ export function createBridge({ token = randomBytes(32).toString('hex'), origin =
     const requestUrl = new URL(req.url, localOrigin);
     if (req.method === 'GET' && requestUrl.pathname === '/launch') {
       if ((req.headers.origin && ![origin, localOrigin].includes(req.headers.origin)) || (req.headers['sec-fetch-dest'] && req.headers['sec-fetch-dest'] !== 'document')) return send(403, { error: 'Origin rejected.' });
-      const destination = requestUrl.searchParams.get('web') === '1' ? origin+'/' : '/';
+      const destination = requestUrl.searchParams.get('local') === '1' ? '/' : origin+'/';
       const lang = requestUrl.searchParams.get('lang');
       const query = ['fr', 'en'].includes(lang) ? '?lang='+lang : '';
       res.writeHead(302, { Location: destination+query+'#pair='+token, 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' }); return res.end();
@@ -87,11 +87,11 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   bridge.server.on('error', error => {
     if (error.code === 'EADDRINUSE') {
       console.log('Ouverture du connecteur deja actif.');
-      spawn('explorer.exe', ['http://127.0.0.1:43187/launch'], { windowsHide: true, stdio: 'ignore' }).on('error', () => console.error('Ouvre http://127.0.0.1:43187/launch dans ton navigateur.'));
+      spawn('explorer.exe', ['http://127.0.0.1:43187/launch?web=1'], { windowsHide: true, stdio: 'ignore' }).on('error', () => console.error('Ouvre http://127.0.0.1:43187/launch?web=1 dans ton navigateur.'));
     } else { console.error('Impossible de demarrer le connecteur sur le port 43187.'); process.exitCode = 1; }
   });
   bridge.server.listen(43187, '127.0.0.1', () => {
-    const url = `http://127.0.0.1:43187/#pair=${bridge.token}`;
+    const url = `${SITE}/#pair=${bridge.token}`;
     console.log('VLT PROFILES | Connecteur actif. Garde cette fenetre ouverte.');
     console.log('Les profils sont stockes dans %LOCALAPPDATA%\\VLTProfiles.');
     spawn('explorer.exe', [url], { windowsHide: true, stdio: 'ignore' }).on('error', () => console.error('Impossible d ouvrir le navigateur. Relance le connecteur.'));
