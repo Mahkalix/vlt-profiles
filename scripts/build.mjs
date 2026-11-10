@@ -1,7 +1,7 @@
 import { mkdir, access, copyFile, cp, readdir, readFile, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { SECURITY_HEADERS } from '../connector/security.mjs';
-const core=['index.html','docs.html','app.js','workspace-state.js','i18n.js','translations.js','pwa.js','style.css','fonts.css','icon.svg','manifest.webmanifest'];
+const core=['index.html','docs.html','app.js','connector-client.js','workspace-state.js','i18n.js','translations.js','pwa.js','style.css','fonts.css','icon.svg','manifest.webmanifest'];
 async function files(dir){const result=[];for(const entry of await readdir(dir,{withFileTypes:true})){const p=dir+'/'+entry.name;if(entry.isDirectory())result.push(...await files(p));else result.push(p);}return result;}
 const assetFiles=(await files('public/assets')).filter(file=>/\.(png|ttf)$/.test(file)).sort();
 const publicFiles=[...core.map(file=>'public/'+file),...assetFiles];

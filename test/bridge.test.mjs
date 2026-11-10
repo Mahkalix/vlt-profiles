@@ -71,7 +71,9 @@ test('language survives pairing and static pages without allowing arbitrary redi
   const paired = await fetch(base+'/launch?web=1&lang=fr&redirect=https://attacker.example', {redirect:'manual'});
   assert.equal(paired.status, 302);
   assert.equal(paired.headers.get('location'), SITE+'/?lang=fr#pair='+'a'.repeat(64));
-  const local = await fetch(base+'/launch?lang=en', {redirect:'manual'});
+  const defaultLaunch = await fetch(base+'/launch', {redirect:'manual'});
+  assert.equal(defaultLaunch.headers.get('location'), SITE+'/#pair='+'a'.repeat(64));
+  const local = await fetch(base+'/launch?local=1&lang=en', {redirect:'manual'});
   assert.equal(local.headers.get('location'), '/?lang=en#pair='+'a'.repeat(64));
 });
 

@@ -11,6 +11,10 @@ export const STATIC_ASSETS = {
     "app.js",
     "text/javascript"
   ],
+  "/connector-client.js": [
+    "connector-client.js",
+    "text/javascript"
+  ],
   "/workspace-state.js": [
     "workspace-state.js",
     "text/javascript"

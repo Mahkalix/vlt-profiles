@@ -2,8 +2,10 @@ VLT PROFILES / WINDOWS
 
 Prerequis : Node.js 22+ et PowerShell 7.
 Extrais tout le ZIP, puis double-clique Demarrer.cmd.
-Le connecteur ouvre une copie locale du site, associee automatiquement au PC.
-Cette interface locale evite l'autorisation reseau HTTPS vers le PC.
+Le connecteur ouvre le site Vercel, associe au PC.
+Clique Connecter mon PC et autorise l'acces au PC/reseau local si demande.
+Si cet acces est bloque, autorise-le dans les parametres du site du navigateur.
+Secours local uniquement : http://127.0.0.1:43187/launch?local=1
 Garde la fenetre du connecteur ouverte pendant l'utilisation.
 
 Connecte Riot Client au compte voulu. Pour appliquer ou restaurer, ferme VALORANT.
