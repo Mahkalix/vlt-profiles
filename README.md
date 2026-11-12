@@ -51,8 +51,6 @@ Compress-Archive -Path connector/* -DestinationPath public/downloads/vlt-connect
 
 ## Credits
 
-The settings transfer approach was verified against the public [ValoUtils source code](https://github.com/windowsedd/ValoUtils/blob/master/src-tauri/src/riot/settings.rs). VLT Profiles has its own interface and connector.
-
 The visual design draws inspiration from the [official VALORANT website](https://playvalorant.com/fr-fr/).
 
 ## Artwork attribution
