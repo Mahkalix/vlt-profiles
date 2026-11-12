@@ -1,36 +1,38 @@
 # VLT Profiles
 
-Une interface inspirée de VALORANT pour enregistrer et transférer les préférences synchronisées entre vos comptes Riot.
+VLT Profiles saves synced VALORANT settings so you can reuse them on another Riot account. The web app works with a local Windows connector.
 
-**Site : https://vlt-profiles-mahkalix.vercel.app**
+[Open VLT Profiles](https://vlt-profiles-mahkalix.vercel.app)
 
-## Utilisation
+## Getting started
 
-1. Téléchargez le connecteur Windows depuis le site et extrayez le ZIP.
-2. Installez Node.js 22+ et PowerShell 7 si nécessaire, puis lancez `Demarrer.cmd`.
-3. Le connecteur ouvre le site Vercel avec une association temporaire pour cet onglet. Cliquez sur Connecter mon PC et autorisez l'accès au PC/réseau local si le navigateur le demande. Les visites suivantes se reconnectent automatiquement si cette autorisation est déjà accordée.
-4. Connectez le compte source dans Riot Client, actualisez sur le site et créez un profil.
-5. Connectez le compte destination, fermez VALORANT, actualisez et appliquez le profil.
+1. Download the Windows connector from the site and extract the ZIP.
+2. Install Node.js 22 or later and PowerShell 7, then run `Demarrer.cmd`.
+3. The connector opens the Vercel site with a temporary pairing for that browser tab. Select **Connect my PC** and allow local network access if your browser prompts you. Later visits can reconnect automatically if the browser already has permission.
+4. Sign in to the source account in Riot Client, refresh the account in VLT Profiles, and save a profile.
+5. Switch to the destination account in Riot Client, close VALORANT, refresh the account in VLT Profiles, and apply the profile.
 
-Le navigateur affiche la destination et demande confirmation avant remplacement. Une sauvegarde est créée avant chaque transfert, y compris avant une restauration. La restauration doit cibler le compte propriétaire de la sauvegarde.
+The app displays the destination account and asks for confirmation before replacing its settings. The connector backs up the current settings before each transfer or restore. A backup can only be restored to the account it came from.
 
-## Conservation et confidentialité
+## Storage and privacy
 
-Les profils et sauvegardes résident dans `%LOCALAPPDATA%\VLTProfiles`, indépendamment du ZIP ou du dossier source. Ils ne sont pas effacés à la fermeture du connecteur. Sauvegardez ce dossier sur un autre support pour éviter une perte en cas de panne ou réinstallation de Windows.
+Profiles and backups are stored in `%LOCALAPPDATA%\VLTProfiles` and persist after the connector closes. Keep a copy of this folder on another drive if you want to preserve your profiles after a drive failure or Windows reinstall.
 
-Les préférences appliquées sont enregistrées chez Riot. Vous pouvez ensuite fermer le connecteur. Vos modifications ultérieures dans le jeu ne changent pas les profils déjà sauvegardés.
+Riot stores the settings once the connector applies them. Later changes in the game leave previously saved profiles intact.
 
-Le connecteur conserve les jetons Riot en mémoire, sans les renvoyer au navigateur ou à Vercel. Il n'écoute que sur `127.0.0.1`, vérifie l'origine exacte du site, le nom d'hôte et un secret d'association aléatoire. Ce secret est transmis dans le fragment de l'URL (pas au serveur web), retiré de l'adresse et conservé dans la session de l'onglet. Relancez le connecteur pour créer une nouvelle association. Les profils ne sont pas hébergés sur Vercel.
+Riot tokens stay in the connector's memory. The connector listens only on `127.0.0.1` and checks the site's exact origin, the request hostname, and a random pairing token. The token travels in the URL fragment, which the browser removes from the address and stores in the tab session. Restart the connector to create a new pairing. Profile data stays on your PC.
 
-## Fonctionnement
+## How it works
 
-Le site statique communique directement avec le compagnon Windows. Le compagnon sert aussi une interface de secours sur `http://127.0.0.1:43187/launch?local=1`. Le site Vercel reste l'interface ouverte par défaut. Celui-ci utilise la session Riot Client et l'API privée `Ares.PlayerSettings`. Il sauvegarde le bloc de préférences encodé sans supprimer les paramètres inconnus, puis vérifie sa relecture après un transfert.
+The static site talks directly to the Windows connector. The hosted interface opens by default. The connector also serves a fallback interface at `http://127.0.0.1:43187/launch?local=1`.
 
-Le transfert concerne les préférences synchronisées présentes dans ce bloc. Les réglages uniquement locaux ou liés au matériel ne sont pas garantis. Il ne transfère ni compte, ni progression, ni objets. L'API privée peut évoluer et rendre la méthode indisponible. Ce projet n'est ni affilié ni approuvé par Riot Games.
+The connector uses the active Riot Client session and Riot's private preferences API. It saves the complete encoded `Ares.PlayerSettings` block, including fields it does not recognize. After applying a profile, it reads the settings back from Riot and checks that they match.
 
-La méthode a été validée sur les comptes du créateur. La compatibilité sur d'autres machines et navigateurs reste à vérifier, notamment l'autorisation d'accès au réseau local depuis HTTPS.
+Transfers cover synced preferences in that block. Local-only and hardware-specific settings may fall outside it. Account data, progression, and items are outside the scope of the transfer. VLT Profiles is an independent project. Changes to Riot's private API could make transfers unavailable.
 
-## Développement
+Transfers were tested on the creator's accounts. Compatibility across other machines and browsers remains unverified, particularly local network access from an HTTPS page.
+
+## Development
 
 ```sh
 npm install
@@ -39,15 +41,19 @@ npm run test:engine
 npm run build
 ```
 
-Le dossier `public` est l'interface Vercel. `connector` contient le serveur local Node.js sans dépendance et les fonctions PowerShell. La valeur `SITE` dans `connector/server.mjs` doit correspondre exactement à votre domaine de production si vous hébergez une copie.
+`public` contains the static frontend deployed to Vercel. `connector` contains the dependency-free Node.js server and the PowerShell code. For self-hosting, set `SITE` in `connector/server.mjs` to match your production origin exactly.
 
-Le ZIP `public/downloads/vlt-connector.zip` doit être régénéré après une modification du connecteur (PowerShell : `Compress-Archive -Path connector/* -DestinationPath public/downloads/vlt-connector.zip -Force`). Aucun profil personnel, alias ou jeton ne doit y être ajouté.
+After changing the connector, rebuild its downloadable ZIP in PowerShell. Keep personal profiles, aliases, and tokens out of the archive.
 
-## Origine de la méthode
+```powershell
+Compress-Archive -Path connector/* -DestinationPath public/downloads/vlt-connector.zip -Force
+```
 
-L'approche de transfert par le service de préférences Riot a été vérifiée dans le code public de [ValoUtils](https://github.com/windowsedd/ValoUtils/blob/master/src-tauri/src/riot/settings.rs). Ce projet utilise une interface et un connecteur distincts.
+## Credits
 
-La direction graphique s'inspire du [site officiel VALORANT](https://playvalorant.com/fr-fr/). Le bandeau utilise une vidéo diffusée par le CDN officiel de Riot. Les éléments VALORANT appartiennent à leurs ayants droit.
+The settings transfer approach was verified against the public [ValoUtils source code](https://github.com/windowsedd/ValoUtils/blob/master/src-tauri/src/riot/settings.rs). VLT Profiles has its own interface and connector.
+
+The visual design draws inspiration from the [official VALORANT website](https://playvalorant.com/fr-fr/).
 
 ## Artwork attribution
 
